@@ -47,4 +47,6 @@ htmlcov/
 # Project specific
 docs/images/
 docs/**/images/
+.scraper_state.json
+.scraper_state_*.json
 *.log

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
+from src.core.config import Language, set_language
 from src.scraper.orchestrator import (
     generate_index,
     list_categories,
@@ -21,6 +22,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="genshin-scraper",
         description="抓取原神千星奇域·综合指南网站内容并转换为 Markdown 文档。",
+    )
+    parser.add_argument(
+        "--lang",
+        choices=[lang.value for lang in Language],
+        default=Language.ZH_CN.value,
+        help="抓取的语言版本 (zh-cn 或 en-us)，默认 zh-cn",
     )
     subparsers = parser.add_subparsers(dest="command", help="可用命令")
 
@@ -110,10 +117,13 @@ def cmd_single(args: argparse.Namespace) -> int:
     """Execute the single page scrape command."""
     path_id = args.path_id
     print(f"抓取页面: {path_id}")
-    # Find the node in the catalog
+    # Find the node in the catalog (match by content path_id or catalog path_id)
     tree = get_catalog_tree()
     pages = flatten_catalog(tree)
-    node = next((p for p in pages if p.path_id == path_id), None)
+    node = next(
+        (p for p in pages if p.path_id == path_id or p.catalog_path_id == path_id),
+        None,
+    )
     if node is None:
         print(f"[错误] 未找到 path_id={path_id} 的页面")
         return 1
@@ -126,6 +136,9 @@ def main(argv: list[str] | None = None) -> int:
     """Main CLI entry point."""
     parser = _build_parser()
     args = parser.parse_args(argv)
+
+    # Set the active language before doing anything else
+    set_language(args.lang)
 
     if args.command is None:
         parser.print_help()

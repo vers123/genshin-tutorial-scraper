@@ -7,11 +7,11 @@ import time
 import requests
 
 from src.core.config import (
-    CONTENT_URL_TEMPLATE,
     MAX_RETRIES,
-    REQUEST_HEADERS,
     REQUEST_TIMEOUT,
     RETRY_DELAY,
+    get_content_url_template,
+    get_request_headers,
 )
 
 
@@ -21,7 +21,7 @@ def _request_with_retry(url: str) -> requests.Response:
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             resp = requests.get(
-                url, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT
+                url, headers=get_request_headers(), timeout=REQUEST_TIMEOUT
             )
             resp.raise_for_status()
             return resp
@@ -41,7 +41,7 @@ def fetch_content_html(path_id: str) -> str:
     Returns:
         The raw HTML string of the page content.
     """
-    url = CONTENT_URL_TEMPLATE.format(path_id=path_id)
+    url = get_content_url_template().format(path_id=path_id)
     resp = _request_with_retry(url)
     # The content is served as UTF-8; ensure correct decoding.
     resp.encoding = "utf-8"

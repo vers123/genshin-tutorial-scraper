@@ -9,11 +9,14 @@ from typing import Any
 import requests
 
 from src.core.config import (
-    CATALOG_URL,
+    Language,
     MAX_RETRIES,
-    REQUEST_HEADERS,
     REQUEST_TIMEOUT,
     RETRY_DELAY,
+    get_catalog_url,
+    get_language,
+    get_request_headers,
+    get_text_map_url,
 )
 
 
@@ -30,6 +33,8 @@ class CatalogNode:
     video_poster: str | None = None
     children: list["CatalogNode"] = field(default_factory=list)
     parent: "CatalogNode | None" = None
+    catalog_path_id: str = ""
+    """The original path_id from the catalog (before English remapping)."""
 
     @property
     def is_category(self) -> bool:
@@ -64,7 +69,7 @@ def _request_with_retry(url: str) -> requests.Response:
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             resp = requests.get(
-                url, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT
+                url, headers=get_request_headers(), timeout=REQUEST_TIMEOUT
             )
             resp.raise_for_status()
             return resp
@@ -77,8 +82,48 @@ def _request_with_retry(url: str) -> requests.Response:
 
 def fetch_catalog_json() -> list[dict[str, Any]]:
     """Fetch the raw catalog JSON from the website."""
-    resp = _request_with_retry(CATALOG_URL)
+    resp = _request_with_retry(get_catalog_url())
     return resp.json()
+
+
+def fetch_text_map() -> dict[str, str]:
+    """Fetch the textMap JSON (used to resolve English path_ids).
+
+    For the English version, the catalog path_ids are the *Chinese* ids and
+    do not match the actual English content files. The textMap.json lists the
+    real English path_ids in the same order as the (flattened) catalog, so we
+    can remap them positionally.
+    """
+    resp = _request_with_retry(get_text_map_url())
+    return resp.json()
+
+
+def _remap_english_path_ids(
+    nodes: list[CatalogNode], text_map: dict[str, str]
+) -> None:
+    """Replace catalog path_ids with the real English content path_ids.
+
+    The English catalog shares the Chinese path_ids, but the actual English
+    content.html files are stored under different ids. The textMap.json keys
+    are the real English ids, ordered to match the flattened catalog.
+    """
+    en_ids = list(text_map.keys())
+
+    flat: list[CatalogNode] = []
+
+    def _walk(node: CatalogNode) -> None:
+        flat.append(node)
+        for child in node.children:
+            _walk(child)
+
+    for node in nodes:
+        _walk(node)
+
+    for i, node in enumerate(flat):
+        if i < len(en_ids):
+            node.path_id = en_ids[i]
+            node.real_id = en_ids[i]
+            # catalog_path_id keeps the original catalog id for lookups
 
 
 def parse_catalog(data: list[dict[str, Any]]) -> list[CatalogNode]:
@@ -86,15 +131,17 @@ def parse_catalog(data: list[dict[str, Any]]) -> list[CatalogNode]:
     nodes: list[CatalogNode] = []
 
     def _build(item: dict[str, Any], parent: CatalogNode | None = None) -> CatalogNode:
+        orig_id = item.get("path_id", "")
         node = CatalogNode(
             title=item.get("title", ""),
-            path_id=item.get("path_id", ""),
-            real_id=item.get("real_id", item.get("path_id", "")),
+            path_id=orig_id,
+            real_id=item.get("real_id", orig_id),
             updated_at=item.get("updated_at", ""),
             doc_type=item.get("doc_type", "document"),
             article_type=item.get("article_type"),
             video_poster=item.get("videoPoster"),
             parent=parent,
+            catalog_path_id=orig_id,
         )
         for child in item.get("children", []) or []:
             node.children.append(_build(child, node))
@@ -121,9 +168,21 @@ def flatten_catalog(nodes: list[CatalogNode]) -> list[CatalogNode]:
 
 
 def get_catalog_tree() -> list[CatalogNode]:
-    """Fetch and parse the catalog, returning the full tree."""
+    """Fetch and parse the catalog, returning the full tree.
+
+    For the English language, the catalog path_ids are remapped to the real
+    English content ids (resolved via textMap.json) so that downstream code
+    can fetch content.html directly.
+    """
     data = fetch_catalog_json()
-    return parse_catalog(data)
+    tree = parse_catalog(data)
+    if get_language() is Language.EN_US:
+        try:
+            text_map = fetch_text_map()
+            _remap_english_path_ids(tree, text_map)
+        except Exception as exc:
+            print(f"[WARN] Failed to remap English path_ids: {exc}")
+    return tree
 
 
 def get_all_pages() -> list[CatalogNode]:

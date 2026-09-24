@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/).
 
+## [Unreleased]
+
+### Added / 新增
+
+- 支持多语言抓取（简体中文 `zh-cn` / 英语 `en-us`）
+- CLI 新增 `--lang` 参数选择语言版本
+- GUI 新增语言下拉选择器
+- 英文内容通过 `textMap.json` 自动映射正确的 path_id
+- 英文文档输出到 `docs/en/` 目录，中文保持 `docs/`
+- 各语言使用独立的状态文件（`.scraper_state.json` / `.scraper_state_en.json`）
+
 ## [1.0.0] - 2026-09-25
 
 ### Added / 新增

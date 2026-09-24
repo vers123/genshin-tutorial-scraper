@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from src.core.config import STATE_FILE
+from src.core.config import get_state_file
 from src.scraper.catalog import CatalogNode, flatten_catalog, get_catalog_tree
 
 
@@ -20,8 +20,8 @@ class UpdateChecker:
     to determine which pages need to be re-scraped.
     """
 
-    def __init__(self, state_file: Path = STATE_FILE) -> None:
-        self._state_file = state_file
+    def __init__(self, state_file: Path | None = None) -> None:
+        self._state_file = state_file or get_state_file()
         self._state: dict[str, Any] = self._load_state()
 
     def _load_state(self) -> dict[str, Any]:

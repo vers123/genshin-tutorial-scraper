@@ -10,11 +10,11 @@ from urllib.parse import urlparse
 import requests
 
 from src.core.config import (
-    IMAGES_DIR,
     MAX_RETRIES,
-    REQUEST_HEADERS,
     REQUEST_TIMEOUT,
     RETRY_DELAY,
+    get_images_dir,
+    get_request_headers,
 )
 
 
@@ -47,7 +47,7 @@ def download_image(url: str, output_dir: Path | None = None) -> Path | None:
         return None
 
     if output_dir is None:
-        output_dir = IMAGES_DIR
+        output_dir = get_images_dir()
     output_dir.mkdir(parents=True, exist_ok=True)
 
     filename = _url_to_filename(url)
@@ -61,7 +61,7 @@ def download_image(url: str, output_dir: Path | None = None) -> Path | None:
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             resp = requests.get(
-                url, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT, stream=True
+                url, headers=get_request_headers(), timeout=REQUEST_TIMEOUT, stream=True
             )
             resp.raise_for_status()
             with open(local_path, "wb") as f:

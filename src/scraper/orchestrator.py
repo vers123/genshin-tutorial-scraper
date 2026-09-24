@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable
 
-from src.core.config import DOCS_DIR, MAX_WORKERS, PAGE_URL_TEMPLATE
+from src.core.config import MAX_WORKERS, get_docs_dir, get_page_url_template
 from src.core.updater import UpdateChecker
 from src.scraper.catalog import CatalogNode, get_catalog_tree, flatten_catalog
 from src.scraper.content import fetch_content_html
@@ -20,13 +20,14 @@ ProgressCallback = Callable[[int, int, str], None]
 
 def _get_output_dir(node: CatalogNode) -> Path:
     """Determine the output directory for a page based on its category path."""
+    docs_dir = get_docs_dir()
     # category_path uses "/" separators
     parts = node.category_path.split("/") if node.category_path else []
     # Sanitize each part for use as a directory name
     safe_parts = [p for p in parts if p]
     if not safe_parts:
         safe_parts = ["未分类"]
-    return DOCS_DIR.joinpath(*safe_parts)
+    return docs_dir.joinpath(*safe_parts)
 
 
 def _write_markdown(
@@ -37,7 +38,7 @@ def _write_markdown(
     filename = get_safe_filename(node.title)
     filepath = output_dir / filename
 
-    page_url = PAGE_URL_TEMPLATE.format(path_id=node.path_id)
+    page_url = get_page_url_template().format(path_id=node.path_id)
     front_matter = (
         "---\n"
         f"title: {node.title}\n"
@@ -135,7 +136,7 @@ def scrape_all(
         cat_path = stored.get("category_path", "")
         title = stored.get("title", "")
         if cat_path and title:
-            old_file = DOCS_DIR.joinpath(
+            old_file = get_docs_dir().joinpath(
                 *cat_path.split("/"), get_safe_filename(title)
             )
             if old_file.exists():
@@ -160,8 +161,15 @@ def list_categories() -> list[str]:
 
 def generate_index() -> Path:
     """Generate an index.md file listing all scraped pages by category."""
+    from src.core.config import get_language
+
     tree = get_catalog_tree()
-    lines: list[str] = ["# 原神千星奇域·综合指南 文档索引\n"]
+    lang = get_language()
+    if lang.value == "zh-cn":
+        title_line = "# 原神千星奇域·综合指南 文档索引\n"
+    else:
+        title_line = "# Genshin Impact Miliastra Wonderland - General Guide Index\n"
+    lines: list[str] = [title_line]
 
     def _walk(node: CatalogNode, depth: int) -> None:
         indent = "  " * depth
@@ -178,7 +186,7 @@ def generate_index() -> Path:
     for node in tree:
         _walk(node, 0)
 
-    index_path = DOCS_DIR / "index.md"
+    index_path = get_docs_dir() / "index.md"
     with open(index_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
     return index_path

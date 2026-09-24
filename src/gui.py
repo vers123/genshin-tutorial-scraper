@@ -6,6 +6,7 @@ import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from src.core.config import Language, set_language
 from src.scraper.orchestrator import generate_index, scrape_all
 from src.scraper.catalog import get_catalog_tree, flatten_catalog
 
@@ -16,7 +17,7 @@ class ScraperGUI:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("原神千星奇域·综合指南抓取工具")
-        self.root.geometry("680x520")
+        self.root.geometry("680x560")
         self.root.minsize(560, 420)
 
         self._scraping = False
@@ -38,6 +39,25 @@ class ScraperGUI:
         # Options frame
         opt_frame = ttk.LabelFrame(main, text="选项", padding=12)
         opt_frame.pack(fill=tk.X, pady=(0, 12))
+
+        # Language selector
+        lang_row = ttk.Frame(opt_frame)
+        lang_row.pack(fill=tk.X, pady=(0, 8))
+        ttk.Label(lang_row, text="语言:").pack(side=tk.LEFT)
+        self.lang_var = tk.StringVar(value=Language.ZH_CN.value)
+        lang_combo = ttk.Combobox(
+            lang_row,
+            textvariable=self.lang_var,
+            values=[lang.value for lang in Language],
+            state="readonly",
+            width=12,
+        )
+        lang_combo.pack(side=tk.LEFT, padx=(8, 0))
+        ttk.Label(
+            lang_row,
+            text="(简体中文 / English)",
+            foreground="#888",
+        ).pack(side=tk.LEFT, padx=(8, 0))
 
         self.force_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(
@@ -153,8 +173,9 @@ class ScraperGUI:
     def _on_start(self) -> None:
         if self._scraping:
             return
+        set_language(self.lang_var.get())
         self._set_scraping(True)
-        self._log("开始抓取...")
+        self._log(f"开始抓取 ({self.lang_var.get()})...")
         force = self.force_var.get()
         build_index = self.index_var.get()
 
@@ -191,7 +212,8 @@ class ScraperGUI:
             self.root.after(0, lambda: self._set_scraping(False))
 
     def _on_list(self) -> None:
-        self._log("获取页面列表...")
+        set_language(self.lang_var.get())
+        self._log(f"获取页面列表 ({self.lang_var.get()})...")
         try:
             tree = get_catalog_tree()
             pages = flatten_catalog(tree)
