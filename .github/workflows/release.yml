@@ -61,12 +61,26 @@ jobs:
             Path("release_notes.md").write_text("No changelog entry found for this version.", encoding="utf-8")
           PY
 
+      - name: Package documents into archives
+        run: |
+          # Package Chinese docs (everything in docs/ except docs/en/)
+          cd docs
+          zip -r ../docs-zh-cn.zip . -x "en/*" "en"
+          cd ..
+          # Package English docs
+          cd docs/en
+          zip -r ../../docs-en-us.zip .
+          cd ../..
+          echo "Created archives:"
+          ls -lh docs-zh-cn.zip docs-en-us.zip
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           body_path: release_notes.md
           files: |
-            docs/**
+            docs-zh-cn.zip
+            docs-en-us.zip
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
