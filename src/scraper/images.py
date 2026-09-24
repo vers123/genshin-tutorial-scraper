@@ -18,6 +18,9 @@ from src.core.config import (
 )
 
 
+VALID_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg", ".ico"}
+
+
 def _url_to_filename(url: str) -> str:
     """Convert an image URL to a safe local filename.
 
@@ -25,9 +28,9 @@ def _url_to_filename(url: str) -> str:
     and keep file paths short.
     """
     parsed = urlparse(url)
-    ext = Path(parsed.path).suffix or ".png"
-    # Limit extension length to avoid weird cases
-    if len(ext) > 10:
+    ext = Path(parsed.path).suffix.lower()
+    # Only keep known image extensions; fall back to .png otherwise
+    if ext not in VALID_IMAGE_EXTS:
         ext = ".png"
     url_hash = hashlib.md5(url.encode("utf-8")).hexdigest()[:16]
     return f"{url_hash}{ext}"

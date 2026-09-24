@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ## [Unreleased]
 
+### Fixed / 修复
+
+- 修复 Release 工作流仅抓取中文文档的问题，现同时抓取中英文文档并生成各自索引
+- 修复图片文件名可能出现 `.undefined` 等无效扩展名的问题，仅保留已知图片扩展名
+
+## [1.1.0] - 2026-09-25
+
 ### Added / 新增
 
 - 支持多语言抓取（简体中文 `zh-cn` / 英语 `en-us`）

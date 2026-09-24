@@ -30,11 +30,17 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v
 
-      - name: Scrape latest documents
+      - name: Scrape Chinese documents
         run: python main.py scrape --force
 
-      - name: Generate index
+      - name: Generate Chinese index
         run: python -c "from src.scraper.orchestrator import generate_index; generate_index()"
+
+      - name: Scrape English documents
+        run: python main.py --lang en-us scrape --force
+
+      - name: Generate English index
+        run: python -c "from src.core.config import set_language, Language; from src.scraper.orchestrator import generate_index; set_language(Language.EN_US); generate_index()"
 
       - name: Extract changelog for this version
         id: changelog
