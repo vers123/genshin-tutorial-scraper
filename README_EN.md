@@ -2,6 +2,8 @@
 
 > Scrape all content from the [Genshin Impact Qianxing Qiyu Comprehensive Guide](https://act.mihoyo.com/ys/ugc/tutorial/detail/) website and convert it to Markdown documents, organized by directory.
 
+> **Disclaimer**: This project is for learning and technical research only. It does not contain or distribute any game assets or data, and is not affiliated with miHoYo / HoYoverse or its affiliates.
+
 ## Features
 
 - **Full Scraping**: Scrapes all 188+ guide documents, organized by the website's directory structure
